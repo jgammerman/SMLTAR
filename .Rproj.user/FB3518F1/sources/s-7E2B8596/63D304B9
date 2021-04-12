@@ -1,0 +1,26 @@
+{
+    "collab_server" : "",
+    "contents" : "",
+    "created" : 1618235559861.000,
+    "dirty" : false,
+    "encoding" : "UTF-8",
+    "folds" : "",
+    "hash" : "0",
+    "id" : "63D304B9",
+    "lastKnownWriteTime" : 1618237402,
+    "last_content_update" : 1618237402541,
+    "path" : "~/Desktop/Data_Science/DS_learning/SMLTAR/ch2-tokenisation.Rmd",
+    "project_path" : "ch2-tokenisation.Rmd",
+    "properties" : {
+        "chunk_output_type" : "console",
+        "cursorPosition" : "0,0",
+        "scrollLine" : "0"
+    },
+    "read_only" : false,
+    "read_only_alternatives" : [
+    ],
+    "relative_order" : 1,
+    "source_on_save" : false,
+    "source_window" : "",
+    "type" : "r_markdown"
+}

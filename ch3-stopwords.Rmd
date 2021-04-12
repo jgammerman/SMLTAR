@@ -1,0 +1,60 @@
+---
+title: "Chapter 3: Stopwords"
+output: html_notebook
+editor_options: 
+  chunk_output_type: console
+---
+
+## 3.1 Using premade stop word lists
+
+```{r}
+library(stopwords)
+
+length(stopwords(source = "smart"))
+length(stopwords(source = "snowball"))
+length(stopwords(source = "stopwords-iso"))
+```
+
+```{r}
+setdiff(stopwords(source = "snowball"),
+        stopwords(source = "smart"))
+```
+
+```{r}
+str_subset(stopwords(source = "smart"), "'")
+```
+
+### 3.1.1 Stop word removal in R
+
+```{r}
+library(hcandersenr)
+library(tidyverse)
+library(tidytext)
+
+
+fir_tree <- hca_fairytales() %>%
+  filter(book == "The fir tree",
+         language == "English")
+
+
+fir_tree
+```
+
+```{r}
+tidy_fir_tree <- fir_tree %>%
+  unnest_tokens(word, text)
+
+tidy_fir_tree
+```
+
+```{r}
+tidy_fir_tree %>%
+  filter(!(word %in% stopwords(source = "snowball")))
+```
+
+
+```{r}
+tidy_fir_tree %>%
+  anti_join(get_stopwords(source = "snowball"))
+```
+

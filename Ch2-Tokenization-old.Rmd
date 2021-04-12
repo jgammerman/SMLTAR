@@ -1,0 +1,88 @@
+---
+title: 'Chatper 2: Tokenization'
+output:
+  html_document:
+    df_print: paged
+---
+
+Link: https://smltar.com/tokenization.html
+
+## 2.1 What is a token?
+
+In R, text is typically represented with the character data type, similar to strings in other languages. Let’s explore text from fairy tales written by Hans Christian Andersen, available in the hcandersenr package (Hvitfeldt 2019a). 
+
+This package stores text as lines such as those you would read in a book; this is just one way that you may find text data in the wild and does allow us to more easily read the text when doing analysis. 
+
+If we look at the first paragraph of one story titled “The Fir Tree”, we find the text of the story is in a character vector: a series of letters, spaces, and punctuation stored as a vector.
+
+```{r}
+library(tokenizers)
+library(tidyverse)
+library(tidytext)
+library(hcandersenr)
+
+the_fir_tree <- hcandersen_en %>%
+  filter(book == "The fir tree") %>%
+  pull(text)
+
+head(the_fir_tree, 9)
+```
+
+The first nine lines stores the first paragraph of the story, each line consisting of a series of character symbols. These elements don’t contain any metadata or information to tell us which characters are words and which aren’t. Identifying these kinds of boundaries between words is where the process of tokenization comes in.
+
+To understand the process of tokenization, let’s start with a overly simple definition for a word: **any selection of alphanumeric (letters and numbers) symbols**. Let’s use some regular expressions with `strsplit() `to split the first two lines of “The Fir Tree” by any characters that are not alphanumeric.
+
+```{r}
+strsplit(the_fir_tree[1:2], "[^a-zA-Z0-9]+")
+```
+
+For a better approach, the pacakges tokenizers (Mullen et al. 2018) and spacy (Honnibal and Montani 2017) implement fast, consistent tokenizers we can use. Let’s demonstrate with the tokenizers package.
+
+```{r}
+library(tokenizers)
+tokenize_words(the_fir_tree[1:2])
+```
+
+We see sensible single-word results here; the tokenize_words() function uses the stringi package (Gagolewski 2019) and C++ under the hood, making it very fast. 
+
+...
+
+While we might not understand what each and every step in the tokenize_words algorithm is doing, we can appreciate that it is many times more sophisticated than our initial approach of splitting on non-alphanumeric characters. In most of this book, we will use the tokenizers package as a baseline tokenizer for reference.
+
+## 2.2 Types of tokens
+
+In the following sections, we will explore how to tokenize text using the tokenizers package. These functions take a character vector as the input and return lists of character vectors as output. 
+
+This same tokenization can also be done using the tidytext (Silge and Robinson 2016) package, for workflows using tidy data principles where the input and output are both in a dataframe.
+
+```{r}
+sample_vector <- c(
+  "Far down in the forest",
+  "grew a pretty little fir-tree"
+)
+sample_tibble <- tibble(text = sample_vector)
+```
+
+The tokenization achieved by using `tokenize_words()` on `sample_vector`:
+
+```{r}
+tokenize_words(sample_vector)
+```
+
+will yield the same results as using `unnest_tokens()` on `sample_tibble`; the only difference is the data structure, and thus how we might use the result moving forward in our analysis.
+
+```{r}
+sample_tibble %>%
+  unnest_tokens(word, text, token = "words")
+```
+```{r}
+sample_tibble %>%
+  unnest_tokens(word, text, token = "words", strip_punct = FALSE)
+```
+
+### 2.2.1 Character Tokens
+
+```{r}
+the_fir_tree
+```
+

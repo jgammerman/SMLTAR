@@ -1,0 +1,301 @@
+---
+title: "Chapter 2: Tokenisation"
+output: html_notebook
+editor_options: 
+  chunk_output_type: console
+---
+
+## 2.1 What is a token?
+
+Link: https://smltar.com/tokenization.html#what-is-a-token
+
+```{r, warning = FALSE, message = FALSE}
+library(tokenizers)
+library(tidyverse)
+library(tidytext)
+library(hcandersenr)
+
+hcandersen_en
+
+```
+
+```{r}
+
+the_fir_tree <- hcandersen_en %>%
+  filter(book == "The fir tree") %>%
+  pull(text)
+
+head(the_fir_tree, 9)
+```
+
+```{r}
+strsplit(the_fir_tree[1:2], "[^a-zA-Z0-9]+")
+```
+
+```{r}
+library(tokenizers)
+tokenize_words(the_fir_tree[1:2])
+```
+
+## 2.2 Types of tokens
+
+
+```{r}
+sample_vector <- c("Far down in the forest",
+                   "grew a pretty little fir-tree")
+
+sample_tibble <- tibble(text = sample_vector)
+
+sample_tibble
+```
+
+
+```{r}
+tokenizers::tokenize_words(sample_vector) # returns a list of character vectors
+```
+
+```{r}
+sample_tibble %>%
+  unnest_tokens(word, text, token = "words")
+```
+
+```{r}
+sample_tibble %>%
+  unnest_tokens(word, text, token = "words", strip_punct = FALSE)
+```
+
+### 2.2.1 Character tokens
+
+```{r}
+tft_token_characters <- tokenize_characters(x = the_fir_tree,
+                                            lowercase = TRUE,
+                                            strip_non_alphanum = TRUE,
+                                            simplify = FALSE)
+
+head(tft_token_characters) %>%
+  glimpse()
+```
+
+```{r}
+tokenize_characters(x = the_fir_tree,
+                    strip_non_alphanum = FALSE) %>%
+  head() %>%
+  glimpse()
+```
+
+```{r}
+tokenize_characters("ﬂowers")
+```
+
+```{r}
+flags <- "🇨🇦🇦🇶🇪🇺🇯🇵"
+
+tokenize_characters(flags)
+```
+### 2.2.2 Word tokens
+
+```{r}
+tft_token_words <- tokenize_words(x = the_fir_tree,
+                                  lowercase = TRUE,
+                                  stopwords = NULL,
+                                  strip_punct = TRUE,
+                                  strip_numeric = FALSE)
+```
+
+
+```{r}
+head(tft_token_words) %>%
+  glimpse()
+```
+
+```{r}
+hcandersen_en %>%
+  filter(book %in% c("The fir tree", "The little mermaid")) %>%
+  unnest_tokens(word, text) %>%
+  count(book, word) %>%
+  group_by(book) %>%
+  arrange(desc(n)) %>%
+  slice(1:5)
+```
+
+### 2.2.3 Tokenizing by n-grams
+
+```{r}
+tft_token_ngram <- tokenize_ngrams(x = the_fir_tree,
+                                   lowercase = TRUE,
+                                   n = 3L,
+                                   n_min = 3L,
+                                   stopwords = character(),
+                                   ngram_delim = " ",
+                                   simplify = FALSE)
+
+tft_token_ngram %>% head(4)
+```
+```{r}
+tft_token_ngram[[1]]
+```
+
+```{r}
+tft_token_ngram <- tokenize_ngrams(x = the_fir_tree,
+                                   n = 2L,
+                                   n_min = 1L)
+tft_token_ngram[[1]]
+```
+
+
+### 2.2.4 Lines, sentence, and paragraph tokens
+
+```{r}
+add_paragraphs <- function(data) {
+  pull(data, text) %>%
+    paste(collapse = "\n") %>%
+    tokenize_paragraphs() %>%
+    unlist() %>%
+    tibble(text = .) %>%
+    mutate(paragraph = row_number())
+}
+```
+
+```{r}
+library(janeaustenr)
+
+northangerabbey_paragraphed <- tibble(text = northangerabbey) %>%
+  mutate(chapter = cumsum(str_detect(text, "^CHAPTER "))) %>%
+  filter(chapter > 0,
+         !str_detect(text, "^CHAPTER ")) %>%
+  nest(data = text) %>%
+  mutate(data = map(data, add_paragraphs)) %>%
+  unnest(cols = c(data))
+
+glimpse(northangerabbey_paragraphed)
+```
+```{r}
+the_fir_tree_sentences <- the_fir_tree %>%
+  paste(collapse = " ") %>%
+  tokenize_sentences()
+
+
+head(the_fir_tree_sentences[[1]])
+```
+
+```{r}
+hcandersen_sentences <- hcandersen_en %>%
+  nest(data = c(text)) %>%
+  mutate(data = map_chr(data, ~ paste(.x$text, collapse = " "))) %>%
+  unnest_sentences(sentences, data)
+
+hcandersen_sentences
+```
+
+## 2.3 Where does tokenisation break down?
+
+```{r}
+tokenize_words("$1")
+```
+```{r}
+tokenize_words("$1", strip_punct = FALSE)
+```
+
+## 2.4 Building your own tokeniser
+
+### 2.4.1  Tokenize to characters, only keeping letters
+
+
+```{r}
+letter_tokens <- str_extract_all(
+  string = "This sentence include 2 numbers and 1 period.",
+  pattern = "[:alpha:]{1}"
+)
+
+letter_tokens
+```
+
+```{r}
+danish_sentence <- "Så mødte han en gammel heks på landevejen"
+
+str_extract_all(danish_sentence, "[:alpha:]")
+```
+
+```{r}
+str_extract_all(danish_sentence, "[a-zA-Z]")
+```
+
+2.4.2 Allow for hyphenated works
+
+```{r}
+str_split("This isn't a sentence with hyphenated-words.", "[:space:]")
+```
+
+```{r}
+str_split("This isn't a sentence with hyphenated-words.", "[:space:]") %>%
+  map(~ str_remove_all(.x, "^[:punct:]+|[:punct:]+$"))
+```
+
+```{r}
+str_extract_all(
+  string = "This isn't a sentence with hyphenated-words.",
+  pattern = "[:alpha:]+-[:alpha:]+"
+)
+```
+
+```{r}
+str_extract_all(
+  string = "This isn't a sentence with hyphenated-words.",
+  pattern = "[:alpha:]+-?[:alpha:]+"
+)
+```
+
+```{r}
+str_extract_all(
+  string = "This isn't a sentence with hyphenated-words.",
+  pattern = "[[:alpha:]']+-?[[:alpha:]']+"
+)
+```
+
+```{r}
+str_extract_all(
+  string = "This isn't a sentence with hyphenated-words.",
+  pattern = "[[:alpha:]']+-?[[:alpha:]']+|[:alpha:]{1}"
+)
+```
+
+### 2.4.3 Wrapping it in a function
+
+```{r}
+tokenize_hyphenated_words <- function(x, lowercase = TRUE) {
+  if (lowercase)
+    x <- str_to_lower(x)
+
+  str_split(x, "[:space:]") %>%
+    map(~ str_remove_all(.x, "^[:punct:]+|[:punct:]+$"))
+}
+
+tokenize_hyphenated_words(the_fir_tree[1:3])
+```
+
+```{r}
+tokenize_character_ngram <- function(x, n) {
+  ngram_loc <- str_locate_all(x, paste0("(?=(\\w{", n, "}))"))
+
+  map2(ngram_loc, x, ~str_sub(.y, .x[, 1], .x[, 1] + n - 1))
+}
+
+tokenize_character_ngram(the_fir_tree[1:3], n = 3)
+```
+
+## 2.5 Tokenisation for non-Latin alphabets
+
+[Didn't want to install package - unlikely to ever need it]
+
+## 2.6 Tokenisation benchmark
+
+```{r}
+bench::mark(check = FALSE, iterations = 10,
+  `corpus` = corpus::text_tokens(hcandersen_en$text),
+  `tokenizers` = tokenizers::tokenize_words(hcandersen_en$text),
+  `text2vec` = text2vec::word_tokenizer(hcandersen_en$text),
+  `quanteda` = quanteda::tokenize_word(hcandersen_en$text),
+  `base R` = strsplit(hcandersen_en$text, "\\s")
+)
+```
+
